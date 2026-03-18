@@ -1,0 +1,26 @@
+# {{ project_name }} (personal fork – @{{ fork_owner }})
+
+> ⚠️ This is a personal fork of
+> [{{ upstream_owner }}/{{ project_name }}]({{ upstream_url }}).
+> The `{{ upstream_branch }}` branch tracks upstream and contains no other changes.
+> Personal modifications live in the branches listed below.
+
+## Upstream
+
+|             |                                                                            |
+| ----------- | -------------------------------------------------------------------------- |
+| Upstream    | [{{ upstream_owner }}/{{ project_name }}]({{ upstream_url }})              |
+| This fork   | [{{ fork_owner }}/{{ project_name }}]({{ fork_url }})                      |
+| Synced to   | `{{ upstream_branch }}` @ [{{ upstream_sha }}]({{ upstream_url }}/commit/{{ upstream_sha }}) |
+| Last synced | {{ synced_at }}                                                            |
+
+## Personal branches
+
+| Branch | Description | Status |
+| ------ | ----------- | ------ |
+{% for b in branches -%}
+| {{ b.branch_link }} | {{ b.description }} | {{ b.status_text }} |
+{% endfor %}
+{% for ref in branch_refs -%}
+{{ ref }}
+{% endfor %}
