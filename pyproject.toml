@@ -1,0 +1,30 @@
+[project]
+name = "livefork"
+version = "0.1.0"
+description = "Keep your personal fork alive"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "BSD-3-Clause" }
+dependencies = [
+    "typer>=0.12",
+    "tomli-w>=1.0",
+    "jinja2>=3.0",
+    "git-knit>=0.1",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.scripts]
+livefork = "livefork.cli:app"
+
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-cov"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.uv.sources]
+git-knit = { path = "../git-knit", editable = true }
