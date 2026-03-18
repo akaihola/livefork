@@ -53,7 +53,7 @@ livefork/
 - Create: `tests/__init__.py`
 - Create: `tests/conftest.py` (stub)
 
-- [ ] **Step 1: Write `pyproject.toml`**
+- [x] **Step 1: Write `pyproject.toml`**
 
 ```toml
 [project]
@@ -85,7 +85,7 @@ dev = ["pytest>=8", "pytest-cov"]
 testpaths = ["tests"]
 ```
 
-- [ ] **Step 2: Write `src/livefork/__init__.py`**
+- [x] **Step 2: Write `src/livefork/__init__.py`**
 
 ```python
 """livefork – keep your personal fork alive."""
@@ -93,7 +93,7 @@ testpaths = ["tests"]
 __version__ = "0.1.0"
 ```
 
-- [ ] **Step 3: Write stub `src/livefork/cli.py`**
+- [x] **Step 3: Write stub `src/livefork/cli.py`**
 
 ```python
 """livefork CLI."""
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     app()
 ```
 
-- [ ] **Step 4: Write stub `tests/conftest.py`**
+- [x] **Step 4: Write stub `tests/conftest.py`**
 
 ```python
 """Shared pytest fixtures."""
@@ -189,7 +189,7 @@ def two_repo_setup(tmp_path: Path) -> tuple[Path, Path]:
     return upstream, fork
 ```
 
-- [ ] **Step 5: Run `uv sync`**
+- [x] **Step 5: Run `uv sync`**
 
 ```bash
 cd /home/agent/prg/livefork
@@ -198,7 +198,7 @@ uv sync
 
 Expected: resolves and installs all deps.
 
-- [ ] **Step 6: Smoke-test the CLI stub**
+- [x] **Step 6: Smoke-test the CLI stub**
 
 ```bash
 uv run livefork --version
@@ -206,7 +206,7 @@ uv run livefork --version
 
 Expected: `livefork 0.1.0`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pyproject.toml src/ tests/
@@ -221,7 +221,7 @@ git commit -m "chore: project scaffold – pyproject, stub CLI, conftest"
 - Create: `src/livefork/config.py`
 - Create: `tests/test_config.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 # tests/test_config.py
@@ -340,7 +340,7 @@ def test_find_config_missing(tmp_path):
         find_config(tmp_path / "nowhere")
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 uv run pytest tests/test_config.py -v
@@ -348,7 +348,7 @@ uv run pytest tests/test_config.py -v
 
 Expected: `ImportError` – `livefork.config` does not exist yet.
 
-- [ ] **Step 3: Implement `src/livefork/config.py`**
+- [x] **Step 3: Implement `src/livefork/config.py`**
 
 ```python
 """livefork configuration management."""
@@ -544,7 +544,7 @@ def auto_detect_branches(git_repo_path: Path) -> list[BranchConfig]:
     return branches
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 uv run pytest tests/test_config.py -v
@@ -552,7 +552,7 @@ uv run pytest tests/test_config.py -v
 
 Expected: all 6 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/livefork/config.py tests/test_config.py
@@ -567,7 +567,7 @@ git commit -m "feat: config.py – TOML load/save, BranchConfig, auto_detect_bra
 - Create: `src/livefork/git.py`
 - Create: `tests/test_git.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 # tests/test_git.py
@@ -667,7 +667,7 @@ def test_get_conflicting_files_empty(git_repo):
     assert g.get_conflicting_files() == []
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 uv run pytest tests/test_git.py -v
@@ -675,7 +675,7 @@ uv run pytest tests/test_git.py -v
 
 Expected: `ImportError` – `livefork.git` does not exist yet.
 
-- [ ] **Step 3: Implement `src/livefork/git.py`**
+- [x] **Step 3: Implement `src/livefork/git.py`**
 
 ```python
 """Git subprocess wrapper for livefork operations."""
@@ -850,7 +850,7 @@ class GitRepo:
         self.run(["config", key, value])
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 uv run pytest tests/test_git.py -v
@@ -858,7 +858,7 @@ uv run pytest tests/test_git.py -v
 
 Expected: all tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/livefork/git.py tests/test_git.py
@@ -873,7 +873,7 @@ git commit -m "feat: git.py – GitRepo subprocess wrapper, BranchInfo, RebaseRe
 - Create: `src/livefork/state.py`
 - Create: `tests/test_state.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 # tests/test_state.py
@@ -944,7 +944,7 @@ def test_state_file_is_readable_json(tmp_path):
     assert raw["paused_branch"] == "b"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 uv run pytest tests/test_state.py -v
@@ -952,7 +952,7 @@ uv run pytest tests/test_state.py -v
 
 Expected: `ImportError`.
 
-- [ ] **Step 3: Implement `src/livefork/state.py`**
+- [x] **Step 3: Implement `src/livefork/state.py`**
 
 ```python
 """Sync progress state stored in .git/livefork-state.json."""
@@ -1000,7 +1000,7 @@ def delete_state(git_dir: Path) -> None:
     path.unlink(missing_ok=True)
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 uv run pytest tests/test_state.py -v
@@ -1008,7 +1008,7 @@ uv run pytest tests/test_state.py -v
 
 Expected: all 7 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/livefork/state.py tests/test_state.py
@@ -1027,7 +1027,7 @@ git commit -m "feat: state.py – SyncState JSON persistence in .git/"
 
 This module imports git-knit's internal Python classes directly (not `git knit` as a subprocess). The public API exported from `git_knit.__init__` is just `cli`, so we use the internal paths: `git_knit.operations.executor.GitExecutor`, `git_knit.operations.config.KnitConfigManager`, `git_knit.operations.rebuilder.KnitRebuilder`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 # tests/test_knit.py
@@ -1106,7 +1106,7 @@ def test_get_config_missing(knit_repo):
     assert kb.get_config("nobody") is None
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 uv run pytest tests/test_knit.py -v
@@ -1114,7 +1114,7 @@ uv run pytest tests/test_knit.py -v
 
 Expected: `ImportError` – `livefork.knit` does not exist yet.
 
-- [ ] **Step 3: Implement `src/livefork/knit.py`**
+- [x] **Step 3: Implement `src/livefork/knit.py`**
 
 ```python
 """Bridge to git-knit Python API (internal classes)."""
@@ -1178,7 +1178,7 @@ class KnitBridge:
         return self.get_config(working_branch) is not None
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 uv run pytest tests/test_knit.py -v
@@ -1186,7 +1186,7 @@ uv run pytest tests/test_knit.py -v
 
 Expected: all 6 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/livefork/knit.py tests/test_knit.py
@@ -1202,7 +1202,7 @@ git commit -m "feat: knit.py – KnitBridge wrapping git-knit Python API"
 - Create: `src/livefork/templates/fork-readme.md.j2`
 - Create: `tests/test_readme.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 # tests/test_readme.py
@@ -1315,7 +1315,7 @@ def test_custom_template(tmp_path):
     assert "Custom: proj synced 2026-03-18" in readme
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 uv run pytest tests/test_readme.py -v
@@ -1323,7 +1323,7 @@ uv run pytest tests/test_readme.py -v
 
 Expected: `ImportError`.
 
-- [ ] **Step 3: Write Jinja2 template `src/livefork/templates/fork-readme.md.j2`**
+- [x] **Step 3: Write Jinja2 template `src/livefork/templates/fork-readme.md.j2`**
 
 ```jinja
 # {{ project_name }} (personal fork – @{{ fork_owner }})
@@ -1353,7 +1353,7 @@ Expected: `ImportError`.
 {% endfor %}
 ```
 
-- [ ] **Step 4: Implement `src/livefork/readme.py`**
+- [x] **Step 4: Implement `src/livefork/readme.py`**
 
 ```python
 """Fork README generation using Jinja2."""
@@ -1517,7 +1517,7 @@ def generate_readme(
     return tmpl.render(**ctx.__dict__, branch_refs=ctx.branch_refs)
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 ```bash
 uv run pytest tests/test_readme.py -v
@@ -1525,7 +1525,7 @@ uv run pytest tests/test_readme.py -v
 
 Expected: all 6 tests PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/livefork/readme.py src/livefork/templates/ tests/test_readme.py
@@ -1544,7 +1544,7 @@ git commit -m "feat: readme.py – Jinja2 fork README generation with branch tab
 
 The sync orchestrator runs the 5-step workflow described in REFERENCE.md. It writes state after every step so `livefork continue` can resume exactly where it paused.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 # tests/test_sync.py
@@ -1714,7 +1714,7 @@ def test_sync_raises_if_already_in_progress(sync_setup):
         orch.run()
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 uv run pytest tests/test_sync.py -v
@@ -1722,7 +1722,7 @@ uv run pytest tests/test_sync.py -v
 
 Expected: `ImportError` – `livefork.sync` does not exist yet.
 
-- [ ] **Step 3: Implement `src/livefork/sync.py`**
+- [x] **Step 3: Implement `src/livefork/sync.py`**
 
 ```python
 """Sync workflow orchestration for livefork."""
@@ -1993,7 +1993,7 @@ To resolve with a coding agent:
 """)
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 uv run pytest tests/test_sync.py -v
@@ -2001,7 +2001,7 @@ uv run pytest tests/test_sync.py -v
 
 Expected: all 5 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/livefork/sync.py tests/test_sync.py
@@ -2018,7 +2018,7 @@ git commit -m "feat: sync.py – SyncOrchestrator with 5-step workflow, state pe
 
 The agent context document is a self-contained Markdown report containing everything a coding AI needs to resolve a rebase conflict without asking questions.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 # tests/test_agent_context.py
@@ -2122,7 +2122,7 @@ def test_agent_context_no_conflict_raises(tmp_path):
         generate_agent_context(cfg, g, state)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 uv run pytest tests/test_agent_context.py -v
@@ -2130,7 +2130,7 @@ uv run pytest tests/test_agent_context.py -v
 
 Expected: `ImportError`.
 
-- [ ] **Step 3: Implement `src/livefork/agent_context.py`**
+- [x] **Step 3: Implement `src/livefork/agent_context.py`**
 
 ```python
 """Generate a self-contained Markdown conflict report for coding AI assistants."""
@@ -2249,7 +2249,7 @@ def generate_agent_context(
     return doc
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 uv run pytest tests/test_agent_context.py -v
@@ -2257,7 +2257,7 @@ uv run pytest tests/test_agent_context.py -v
 
 Expected: all 4 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/livefork/agent_context.py tests/test_agent_context.py
@@ -2276,7 +2276,7 @@ git commit -m "feat: agent_context.py – structured conflict report for AI assi
 
 All commands load config with `_require_config()` or write it with `_save_config()`. The CLI uses `typer.echo` for output and `typer.Exit` for exit codes. Machine-readable output (for agents) uses the same text format – no special flags needed because every message is already structured and unambiguous.
 
-- [ ] **Step 1: Write failing tests for core commands**
+- [x] **Step 1: Write failing tests for core commands**
 
 ```python
 # tests/test_cli.py
@@ -2396,7 +2396,7 @@ def test_remove_branch(fork_with_config):
     assert "feature/patch" not in names
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 uv run pytest tests/test_cli.py -v
@@ -2404,7 +2404,7 @@ uv run pytest tests/test_cli.py -v
 
 Expected: some pass (--version), others fail (commands not implemented).
 
-- [ ] **Step 3: Implement full `src/livefork/cli.py`**
+- [x] **Step 3: Implement full `src/livefork/cli.py`**
 
 ```python
 """livefork CLI – all commands."""
@@ -2947,7 +2947,7 @@ if __name__ == "__main__":
     app()
 ```
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 ```bash
 uv run pytest tests/test_cli.py -v
@@ -2955,7 +2955,7 @@ uv run pytest tests/test_cli.py -v
 
 Expected: version, add, remove tests PASS. (Status and others may need further work depending on env.)
 
-- [ ] **Step 5: Run full test suite**
+- [x] **Step 5: Run full test suite**
 
 ```bash
 uv run pytest -v
@@ -2963,7 +2963,7 @@ uv run pytest -v
 
 Expected: all tests PASS.
 
-- [ ] **Step 6: Manual smoke test**
+- [x] **Step 6: Manual smoke test**
 
 ```bash
 # In a temp directory with a fork setup:
@@ -2972,7 +2972,7 @@ uv run livefork sync --help
 uv run livefork status --help
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/livefork/cli.py tests/test_cli.py
@@ -2990,7 +2990,7 @@ git commit -m "feat: cli.py – all commands (init, sync, continue, abort, statu
 
 Tests the full sync workflow against real local git repos (no GitHub required).
 
-- [ ] **Step 1: Write integration tests**
+- [x] **Step 1: Write integration tests**
 
 ```python
 # tests/test_integration.py
@@ -3139,7 +3139,7 @@ def test_sync_idempotent_after_no_upstream_change(tmp_path):
     assert sha_after_first == sha_after_second
 ```
 
-- [ ] **Step 2: Run integration tests**
+- [x] **Step 2: Run integration tests**
 
 ```bash
 uv run pytest tests/test_integration.py -v
@@ -3147,7 +3147,7 @@ uv run pytest tests/test_integration.py -v
 
 Expected: all 3 tests PASS (conflict test may need tuning based on exact git rebase behavior).
 
-- [ ] **Step 3: Run full test suite**
+- [x] **Step 3: Run full test suite**
 
 ```bash
 uv run pytest -v --tb=short
@@ -3155,7 +3155,7 @@ uv run pytest -v --tb=short
 
 Expected: all tests PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/test_integration.py
@@ -3166,13 +3166,13 @@ git commit -m "test: end-to-end integration tests for sync workflow"
 
 ## Final steps
 
-- [ ] **Run full test suite with coverage**
+- [x] **Run full test suite with coverage**
 
 ```bash
 uv run pytest --cov=livefork --cov-report=term-missing -v
 ```
 
-- [ ] **Verify CLI help output**
+- [x] **Verify CLI help output**
 
 ```bash
 uv run livefork --help
@@ -3181,7 +3181,7 @@ uv run livefork init --help
 uv run livefork agent-context --help
 ```
 
-- [ ] **Update `docs/plans/` with completion note and commit**
+- [x] **Update `docs/plans/` with completion note and commit**
 
 ```bash
 git add docs/
