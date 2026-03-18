@@ -305,7 +305,9 @@ def readme(
     from livefork.sync import SyncOptions, SyncOrchestrator
 
     orch = SyncOrchestrator(cfg, git, knit, root)
-    orch._step_update_readme(SyncOptions(dry_run=dry_run, no_knit=True))
+    orch._step_update_readme(
+        SyncOptions(dry_run=dry_run, no_knit=True, no_push=no_push)
+    )
     if not dry_run:
         typer.echo("✓ Fork README updated.")
 

@@ -31,6 +31,7 @@ class SyncOptions:
     branch: str | None = None  # rebase only this branch
     no_knit: bool = False
     no_readme: bool = False
+    no_push: bool = False
 
 
 class SyncOrchestrator:
@@ -230,7 +231,7 @@ class SyncOrchestrator:
         readme_file.write_text(content)
         self.git.add([self.config.fork_readme.file])
         self.git.commit("chore: update fork README [skip ci]")
-        if self.config.fork_readme.push:
+        if self.config.fork_readme.push and not options.no_push:
             self.git.push(
                 self.config.fork.remote,
                 self.config.fork.branch,
