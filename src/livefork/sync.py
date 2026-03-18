@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from livefork.config import LiveforkConfig
-from livefork.git import GitRepo, RebaseResult
+from livefork.git import GitError, GitRepo, RebaseResult
 from livefork.knit import KnitBridge
 from livefork.state import SyncState, delete_state, load_state, save_state
 
@@ -194,9 +194,15 @@ class SyncOrchestrator:
             return
         from livefork.readme import generate_readme
 
-        upstream_sha = self.git.get_commit_sha(
-            f"{self.config.upstream.remote}/{self.config.upstream.branch}", short=True
-        )
+        upstream_ref = f"{self.config.upstream.remote}/{self.config.upstream.branch}"
+        try:
+            upstream_sha = self.git.get_commit_sha(upstream_ref, short=True)
+        except GitError:
+            print(
+                f"[warn] Could not resolve {upstream_ref!r} – "
+                "upstream not fetched? Using 'unknown' as SHA."
+            )
+            upstream_sha = "unknown"
         upstream_url = self.git.get_remote_url(self.config.upstream.remote) or ""
         fork_url = self.git.get_remote_url(self.config.fork.remote) or ""
         # strip .git suffix
