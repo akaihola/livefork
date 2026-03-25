@@ -559,11 +559,56 @@ def _upstream_github_slug(git, cfg) -> str:
 # ------------------------------------------------------------------ create (requires gh)
 
 
+def _gh_owner_type(owner: str) -> str:
+    """Return ``"Organization"`` or ``"User"`` for a GitHub account name.
+
+    Falls back to ``"unknown"`` if the API call fails.
+    """
+    import subprocess as sp
+
+    result = sp.run(
+        ["gh", "api", f"users/{owner}", "--jq", ".type"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return result.stdout.strip()
+    return "unknown"
+
+
+def _gh_authenticated_user() -> str:
+    """Return the login name of the currently authenticated ``gh`` user."""
+    import subprocess as sp
+
+    result = sp.run(
+        ["gh", "api", "user", "--jq", ".login"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0 and result.stdout.strip():
+        return result.stdout.strip()
+    # Last resort – OS username (may differ from GitHub login)
+    return getpass.getuser()
+
+
 @app.command()
 def create(
     repo: Annotated[str, typer.Argument(help="Upstream repo (owner/name or URL).")],
     fork_name: Annotated[Optional[str], typer.Option("--fork-name")] = None,
-    org: Annotated[Optional[str], typer.Option("--org")] = None,
+    owner: Annotated[
+        Optional[str],
+        typer.Option(
+            "--owner",
+            help=(
+                "GitHub user or organisation to own the fork. "
+                "Defaults to the authenticated user."
+            ),
+        ),
+    ] = None,
+    org: Annotated[
+        Optional[str],
+        typer.Option("--org", hidden=True, help="Deprecated alias for --owner."),
+    ] = None,
     clone_path: Annotated[Optional[str], typer.Option("--clone-path")] = None,
     upstream_remote: Annotated[str, typer.Option("--upstream-remote")] = "upstream",
     fork_remote: Annotated[str, typer.Option("--fork-remote")] = "origin",
@@ -572,6 +617,12 @@ def create(
 ) -> None:
     """Fork a GitHub repository, clone, configure, and initialise in one step (requires gh)."""
     import subprocess as sp
+
+    # --org is a deprecated alias for --owner
+    if org and owner:
+        typer.echo("Cannot use both --owner and --org.", err=True)
+        raise typer.Exit(1)
+    target_owner = owner or org
 
     # Normalise repo slug
     if repo.startswith("https://github.com/"):
@@ -585,8 +636,33 @@ def create(
     gh_args = ["gh", "repo", "fork", slug, "--clone"]
     if fork_name:
         gh_args += ["--fork-name", fork_name]
-    if org:
-        gh_args += ["--org", org]
+
+    # Determine the actual fork owner for remote URL construction
+    if target_owner:
+        owner_type = _gh_owner_type(target_owner)
+        if owner_type == "Organization":
+            gh_args += ["--org", target_owner]
+        elif owner_type == "User":
+            # gh fork to your own account is the default – only need --org for
+            # orgs.  Verify the target is the authenticated user; forking to a
+            # *different* user's account is not supported by GitHub.
+            authed = _gh_authenticated_user()
+            if target_owner.lower() != authed.lower():
+                typer.echo(
+                    f"Cannot fork to another user's account ({target_owner!r}). "
+                    f"You are authenticated as {authed!r}. "
+                    "Use --owner with an organisation name, or omit it to fork "
+                    "to your own account.",
+                    err=True,
+                )
+                raise typer.Exit(1)
+            # target is the authenticated user – no extra flag needed
+        else:
+            # API lookup failed; pass through to gh and let it report errors
+            gh_args += ["--org", target_owner]
+        fork_owner = target_owner
+    else:
+        fork_owner = _gh_authenticated_user()
 
     typer.echo(f"Forking {slug} with gh...")
     result = sp.run(gh_args, capture_output=True, text=True)
@@ -605,7 +681,7 @@ def create(
             "remote",
             "add",
             fork_remote,
-            origin_url.replace(slug.split("/")[0] + "/", f"{getpass.getuser()}/"),
+            origin_url.replace(slug.split("/")[0] + "/", f"{fork_owner}/"),
         ]
     )
 
