@@ -605,10 +605,6 @@ def create(
             ),
         ),
     ] = None,
-    org: Annotated[
-        Optional[str],
-        typer.Option("--org", hidden=True, help="Deprecated alias for --owner."),
-    ] = None,
     clone_path: Annotated[Optional[str], typer.Option("--clone-path")] = None,
     upstream_remote: Annotated[str, typer.Option("--upstream-remote")] = "upstream",
     fork_remote: Annotated[str, typer.Option("--fork-remote")] = "origin",
@@ -617,12 +613,6 @@ def create(
 ) -> None:
     """Fork a GitHub repository, clone, configure, and initialise in one step (requires gh)."""
     import subprocess as sp
-
-    # --org is a deprecated alias for --owner
-    if org and owner:
-        typer.echo("Cannot use both --owner and --org.", err=True)
-        raise typer.Exit(1)
-    target_owner = owner or org
 
     # Normalise repo slug
     if repo.startswith("https://github.com/"):
@@ -638,18 +628,18 @@ def create(
         gh_args += ["--fork-name", fork_name]
 
     # Determine the actual fork owner for remote URL construction
-    if target_owner:
-        owner_type = _gh_owner_type(target_owner)
+    if owner:
+        owner_type = _gh_owner_type(owner)
         if owner_type == "Organization":
-            gh_args += ["--org", target_owner]
+            gh_args += ["--org", owner]
         elif owner_type == "User":
             # gh fork to your own account is the default – only need --org for
             # orgs.  Verify the target is the authenticated user; forking to a
             # *different* user's account is not supported by GitHub.
             authed = _gh_authenticated_user()
-            if target_owner.lower() != authed.lower():
+            if owner.lower() != authed.lower():
                 typer.echo(
-                    f"Cannot fork to another user's account ({target_owner!r}). "
+                    f"Cannot fork to another user's account ({owner!r}). "
                     f"You are authenticated as {authed!r}. "
                     "Use --owner with an organisation name, or omit it to fork "
                     "to your own account.",
@@ -659,8 +649,8 @@ def create(
             # target is the authenticated user – no extra flag needed
         else:
             # API lookup failed; pass through to gh and let it report errors
-            gh_args += ["--org", target_owner]
-        fork_owner = target_owner
+            gh_args += ["--org", owner]
+        fork_owner = owner
     else:
         fork_owner = _gh_authenticated_user()
 
