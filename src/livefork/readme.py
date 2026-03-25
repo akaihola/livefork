@@ -71,6 +71,16 @@ def build_context(
     synced_at: datetime.date,
     draft_branches: set[str] | None = None,
 ) -> ReadmeContext:
+    if not upstream_url:
+        raise ValueError(
+            "upstream_url is empty – cannot generate README without a valid"
+            " upstream remote URL"
+        )
+    if not fork_url:
+        raise ValueError(
+            "fork_url is empty – cannot generate README without a valid"
+            " fork remote URL"
+        )
     draft_branches = draft_branches or set()
     project_name = _parse_github_repo(upstream_url)
     upstream_owner = _parse_github_owner(upstream_url)

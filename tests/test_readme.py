@@ -105,6 +105,42 @@ def test_readme_local_only_branch():
     assert "local only" in readme
 
 
+def test_build_context_rejects_empty_upstream_url():
+    cfg = _make_config()
+    with pytest.raises(ValueError, match="upstream_url"):
+        build_context(
+            cfg,
+            upstream_sha="abc1234",
+            upstream_url="",
+            fork_url="https://github.com/me/proj",
+            synced_at=datetime.date(2026, 1, 1),
+        )
+
+
+def test_build_context_rejects_empty_fork_url():
+    cfg = _make_config()
+    with pytest.raises(ValueError, match="fork_url"):
+        build_context(
+            cfg,
+            upstream_sha="abc1234",
+            upstream_url="https://github.com/org/proj",
+            fork_url="",
+            synced_at=datetime.date(2026, 1, 1),
+        )
+
+
+def test_generate_readme_rejects_empty_urls():
+    cfg = _make_config()
+    with pytest.raises(ValueError, match="upstream_url"):
+        generate_readme(
+            cfg,
+            upstream_sha="abc1234",
+            upstream_url="",
+            fork_url="",
+            synced_at=datetime.date(2026, 1, 1),
+        )
+
+
 def test_custom_template(tmp_path):
     template = tmp_path / "tmpl.md.j2"
     template.write_text("# Custom: {{ project_name }} synced {{ synced_at }}\n")

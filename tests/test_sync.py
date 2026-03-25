@@ -161,6 +161,44 @@ def test_abort_sync_resets_branches(sync_setup):
     assert load_state(fork / ".git") is None
 
 
+def test_step_update_readme_errors_when_upstream_url_missing(sync_setup, capsys):
+    """_step_update_readme should abort with a clear message when upstream URL is empty."""
+    _upstream, fork, cfg = sync_setup
+    cfg.fork_readme.enabled = True
+
+    g = GitRepo(fork)
+    knit = KnitBridge(fork)
+
+    # Remove the upstream remote so get_remote_url returns None → ""
+    _git(fork, "remote", "remove", "upstream")
+
+    orch = SyncOrchestrator(cfg, g, knit, fork)
+    with pytest.raises(SystemExit):
+        orch._step_update_readme(SyncOptions())
+
+    captured = capsys.readouterr()
+    assert "upstream" in captured.err.lower() or "upstream" in captured.out.lower()
+
+
+def test_step_update_readme_errors_when_fork_url_missing(sync_setup, capsys):
+    """_step_update_readme should abort with a clear message when fork URL is empty."""
+    _upstream, fork, cfg = sync_setup
+    cfg.fork_readme.enabled = True
+
+    g = GitRepo(fork)
+    knit = KnitBridge(fork)
+
+    # Remove the origin remote so get_remote_url returns None → ""
+    _git(fork, "remote", "remove", "origin")
+
+    orch = SyncOrchestrator(cfg, g, knit, fork)
+    with pytest.raises(SystemExit):
+        orch._step_update_readme(SyncOptions())
+
+    captured = capsys.readouterr()
+    assert "origin" in captured.err.lower() or "origin" in captured.out.lower()
+
+
 def test_sync_raises_if_already_in_progress(sync_setup):
     upstream, fork, cfg = sync_setup
     g = GitRepo(fork)

@@ -209,6 +209,28 @@ class SyncOrchestrator:
         upstream_url = upstream_url.removesuffix(".git")
         fork_url = fork_url.removesuffix(".git")
 
+        errors = []
+        if not upstream_url:
+            errors.append(
+                f"Cannot resolve upstream remote URL"
+                f" (remote {self.config.upstream.remote!r} not found)."
+            )
+        if not fork_url:
+            errors.append(
+                f"Cannot resolve fork remote URL"
+                f" (remote {self.config.fork.remote!r} not found)."
+            )
+        if errors:
+            import sys
+
+            for e in errors:
+                print(f"[error] {e}", file=sys.stderr)
+            print(
+                "[error] Refusing to generate README with empty URLs.",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+
         # detect draft branches (have PULL-REQUEST-DRAFT.md on their tip)
         draft_branches: set[str] = set()
         for b in self.config.branches:
