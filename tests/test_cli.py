@@ -450,6 +450,71 @@ class TestCreate:
         assert "--fork-name" in gh_args
         assert "my-fork" in gh_args
 
+    def test_clone_path_dot_reuses_current_repo_and_runs_init(self, clone_target):
+        """--clone-path . reuses the current repo instead of requiring --no-init."""
+        gh_ok = _make_sp_result()
+        with (
+            patch("livefork.cli._gh_authenticated_user", return_value="octocat"),
+            patch(
+                "subprocess.run",
+                side_effect=_gh_passthrough_side_effect(gh_ok),
+            ) as mock_run,
+            patch("livefork.cli.init") as mock_init,
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "create",
+                    "upstream-org/project",
+                    "--clone-path",
+                    ".",
+                ],
+                catch_exceptions=False,
+                env={"PWD": str(clone_target)},
+            )
+        assert result.exit_code == 0
+        mock_init.assert_called_once_with(merge_branch=None)
+        gh_calls = [
+            c for c in mock_run.call_args_list if c[0][0][0] == "gh"
+        ]
+        gh_args = gh_calls[0][0][0]
+        assert "--clone" not in gh_args
+        assert result.output.splitlines()[1] == f"Using existing clone at {clone_target}"
+        git_result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=clone_target,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "octocat" in git_result.stdout
+
+    def test_existing_matching_repo_reuses_clone_without_clone_path(self, clone_target):
+        """Current repo is reused automatically when it already matches the upstream slug."""
+        gh_ok = _make_sp_result()
+        with (
+            patch("livefork.cli._gh_authenticated_user", return_value="octocat"),
+            patch(
+                "subprocess.run",
+                side_effect=_gh_passthrough_side_effect(gh_ok),
+            ) as mock_run,
+            patch("livefork.cli.init") as mock_init,
+        ):
+            result = runner.invoke(
+                app,
+                ["create", "upstream-org/project"],
+                catch_exceptions=False,
+                env={"PWD": str(clone_target)},
+            )
+        assert result.exit_code == 0
+        mock_init.assert_called_once_with(merge_branch=None)
+        gh_calls = [
+            c for c in mock_run.call_args_list if c[0][0][0] == "gh"
+        ]
+        gh_args = gh_calls[0][0][0]
+        assert "--clone" not in gh_args
+        assert result.output.splitlines()[1] == f"Using existing clone at {clone_target}"
+
     def test_gh_fork_failure_reports_error(self):
         """When gh repo fork fails, stderr is reported."""
         gh_fail = _make_sp_result(returncode=1, stderr="HTTP 404: Not Found")

@@ -54,6 +54,25 @@ def _make_knit(root: Path):
     return KnitBridge(root)
 
 
+def _existing_clone_path(slug: str, clone_path: Optional[str]) -> Path | None:
+    """Return an existing checkout path when create should reuse the current repo.
+
+    Detects two cases:
+    1. ``--clone-path .`` (or any path that resolves to cwd)
+    2. No ``--clone-path`` but cwd name matches the repo name and has a ``.git``
+    """
+    root = _repo_root()
+    repo_name = slug.split("/")[-1]
+    if clone_path is not None:
+        requested = (root / clone_path).resolve()
+        if requested == root:
+            return root
+        return None
+    if root.name == repo_name and (root / ".git").exists():
+        return root
+    return None
+
+
 # ------------------------------------------------------------------ --version
 
 
@@ -621,9 +640,12 @@ def create(
         slug = repo
 
     repo_name = slug.split("/")[-1]
-    local_path = Path(clone_path or f"./{repo_name}").resolve()
+    existing_clone = _existing_clone_path(slug, clone_path)
+    local_path = existing_clone or Path(clone_path or f"./{repo_name}").resolve()
 
-    gh_args = ["gh", "repo", "fork", slug, "--clone"]
+    gh_args = ["gh", "repo", "fork", slug]
+    if existing_clone is None:
+        gh_args.append("--clone")
     if fork_name:
         gh_args += ["--fork-name", fork_name]
 
@@ -660,20 +682,38 @@ def create(
         typer.echo(f"gh error: {result.stderr}", err=True)
         raise typer.Exit(1)
 
-    typer.echo(f"Cloned to {local_path}")
+    if existing_clone is not None:
+        typer.echo(f"Using existing clone at {local_path}")
+    else:
+        typer.echo(f"Cloned to {local_path}")
 
-    # Rename origin → upstream, set upstream-remote
+    # Configure remotes: upstream → upstream repo, fork_remote → fork
     git = _make_git(local_path)
+    upstream_owner = slug.split("/")[0]
+    existing_upstream = git.get_remote_url(upstream_remote)
     origin_url = git.get_remote_url("origin") or ""
-    git.run(["remote", "rename", "origin", upstream_remote])
-    git.run(
-        [
-            "remote",
-            "add",
-            fork_remote,
-            origin_url.replace(slug.split("/")[0] + "/", f"{fork_owner}/"),
-        ]
-    )
+
+    if existing_upstream:
+        # upstream remote already present – just ensure the fork remote exists
+        if not git.get_remote_url(fork_remote):
+            git.run(
+                [
+                    "remote",
+                    "add",
+                    fork_remote,
+                    origin_url.replace(f"{upstream_owner}/", f"{fork_owner}/"),
+                ]
+            )
+    else:
+        git.run(["remote", "rename", "origin", upstream_remote])
+        git.run(
+            [
+                "remote",
+                "add",
+                fork_remote,
+                origin_url.replace(f"{upstream_owner}/", f"{fork_owner}/"),
+            ]
+        )
 
     if not no_init:
         os.environ["PWD"] = str(local_path)

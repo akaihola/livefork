@@ -332,6 +332,8 @@ livefork create https://github.com/upstream-org/project
 
 When `--owner` names an organisation, `gh repo fork --org` is used. When it names your own GitHub account (or is omitted), the fork goes to your personal account – the default `gh` behaviour. Passing another user's name is rejected with a clear error, since GitHub does not support forking into someone else's account.
 
+**Running inside an existing clone:** If the current directory already matches the target repo (same directory name, has a `.git`), `create` reuses the checkout instead of cloning again – it forks on GitHub, configures remotes, and runs `init` in place. You can also force this with `--clone-path .`.
+
 ### `livefork init`
 
 Configure an existing fork clone and initialise the merge branch.

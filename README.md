@@ -53,6 +53,16 @@ cd project
 livefork sync
 ```
 
+**Fork from inside an existing clone:**
+
+```bash
+cd project                          # already cloned
+livefork create upstream-org/project
+livefork sync
+```
+
+When the current directory already matches the target repo, `livefork create` reuses the existing checkout instead of cloning again. You can also pass `--clone-path .` explicitly.
+
 **Configure an existing fork:**
 
 ```bash
@@ -61,7 +71,7 @@ livefork init
 livefork sync
 ```
 
-Both commands detect your local branches automatically, write `.livefork.toml`, initialise the merge branch (named after your username by default), and generate an initial fork README on the `main` branch.
+All three paths detect your local branches automatically, write `.livefork.toml`, initialise the merge branch (named after your username by default), and generate an initial fork README on the `main` branch.
 
 ---
 
