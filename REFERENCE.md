@@ -322,13 +322,15 @@ livefork create https://github.com/upstream-org/project
 
 # Flags (core ones mirror gh repo fork)
   --fork-name        NAME    # name for the fork on GitHub         (default: same as upstream)
-  --org              ORG     # fork into an organisation
+  --owner            OWNER   # GitHub user or org to own the fork  (default: authenticated user)
   --clone-path       PATH    # local directory                     (default: ./<repo-name>)
   --upstream-remote  NAME    # name for the upstream remote        (default: "upstream")
   --fork-remote      NAME    # name for the fork remote            (default: "origin")
   --merge-branch     NAME    # override merge branch name          (default: $USER)
   --no-init                  # skip .livefork.toml and git-knit
 ```
+
+When `--owner` names an organisation, `gh repo fork --org` is used. When it names your own GitHub account (or is omitted), the fork goes to your personal account – the default `gh` behaviour. Passing another user's name is rejected with a clear error, since GitHub does not support forking into someone else's account.
 
 ### `livefork init`
 
