@@ -188,10 +188,13 @@ def status() -> None:
 
     for b in cfg.branches:
         bsha = sha_short(b.name)
-        # Check if rebased (branch is on top of fork main)
+        # Check if rebased: topic branch must contain all upstream commits.
+        # We check against upstream_ref (not fork_ref) because fork.branch
+        # may have fork-only commits (e.g. the README commit from sync step 5)
+        # that topic branches are not expected to include.
         try:
             result = git.run(
-                ["merge-base", "--is-ancestor", fork_ref, b.name], check=False
+                ["merge-base", "--is-ancestor", upstream_ref, b.name], check=False
             )
             rebased = result.returncode == 0
         except Exception:

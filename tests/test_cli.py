@@ -78,6 +78,289 @@ def test_status_no_config(tmp_path):
     assert result.exit_code != 0 or "no .livefork.toml" in result.output.lower()
 
 
+class TestStatusAfterSync:
+    """Status should report 'rebased' for all topic branches after a successful sync."""
+
+    @pytest.fixture()
+    def synced_fork(self, tmp_path):
+        """Run a full sync (with README enabled) and return the fork path."""
+        upstream = tmp_path / "upstream"
+        upstream.mkdir()
+        _git(upstream, "init", "-b", "main")
+        _git(upstream, "config", "user.email", "u@u.com")
+        _git(upstream, "config", "user.name", "U")
+        _commit(upstream, "initial", "base.txt")
+
+        fork = tmp_path / "fork"
+        subprocess.run(
+            ["git", "clone", str(upstream), str(fork)],
+            check=True,
+            capture_output=True,
+        )
+        _git(fork, "config", "user.email", "me@me.com")
+        _git(fork, "config", "user.name", "Me")
+        _git(fork, "remote", "rename", "origin", "upstream")
+
+        # bare origin for push
+        origin = tmp_path / "origin.git"
+        origin.mkdir()
+        _git(origin, "init", "--bare", "-b", "main")
+        _git(fork, "remote", "add", "origin", str(origin))
+
+        # two topic branches
+        _git(fork, "checkout", "-b", "feature/alpha")
+        _commit(fork, "alpha work", "alpha.txt")
+        _git(fork, "checkout", "main")
+        _git(fork, "checkout", "-b", "feature/beta")
+        _commit(fork, "beta work", "beta.txt")
+        _git(fork, "checkout", "main")
+
+        # upstream advances
+        _commit(upstream, "upstream advance", "up.txt")
+
+        config_toml = """\
+[upstream]
+remote = "upstream"
+branch = "main"
+
+[fork]
+remote = "origin"
+branch = "main"
+
+[knit]
+branch = "johndoe"
+base = "main"
+
+[fork-readme]
+enabled = true
+push = false
+
+[[branches]]
+name = "feature/alpha"
+description = "Alpha"
+
+[[branches]]
+name = "feature/beta"
+description = "Beta"
+"""
+        (fork / ".livefork.toml").write_text(config_toml)
+
+        from livefork.git import GitRepo
+        from livefork.knit import KnitBridge
+        from livefork.sync import SyncOptions, SyncOrchestrator
+        from livefork.config import load_config
+
+        cfg = load_config(fork / ".livefork.toml")
+        git = GitRepo(fork)
+        knit = KnitBridge(fork)
+        knit.init_knit("johndoe", "main", ["feature/alpha", "feature/beta"])
+        orch = SyncOrchestrator(cfg, git, knit, fork)
+        rc = orch.run(SyncOptions(no_push=True))
+        assert rc == 0
+        return fork
+
+    def test_status_shows_rebased_after_sync_with_readme(self, synced_fork):
+        """After sync (which adds a README commit to fork/main), status must
+        report '✓ rebased' for every topic branch – not '✗ needs rebase'."""
+        result = runner.invoke(
+            app,
+            ["status"],
+            catch_exceptions=False,
+            env={"PWD": str(synced_fork)},
+        )
+        assert result.exit_code == 0
+        assert "✗ needs rebase" not in result.output
+        assert "✓ rebased" in result.output
+
+    def test_status_shows_needs_rebase_when_behind(self, synced_fork):
+        """A topic branch that is genuinely behind upstream shows '✗ needs rebase'."""
+        # Create a new commit on upstream, fetch it, advance fork/main,
+        # but do NOT rebase the topic branches.
+        upstream_url = subprocess.run(
+            ["git", "remote", "get-url", "upstream"],
+            cwd=synced_fork,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        _commit(Path(upstream_url), "another upstream advance", "up2.txt")
+        _git(synced_fork, "fetch", "upstream")
+        _git(synced_fork, "checkout", "main")
+        _git(synced_fork, "reset", "--hard", "upstream/main")
+
+        result = runner.invoke(
+            app,
+            ["status"],
+            catch_exceptions=False,
+            env={"PWD": str(synced_fork)},
+        )
+        assert result.exit_code == 0
+        assert "✗ needs rebase" in result.output
+
+    def test_status_rebased_after_sync_without_readme(self, tmp_path):
+        """Status reports '✓ rebased' after sync with README disabled too."""
+        upstream = tmp_path / "upstream"
+        upstream.mkdir()
+        _git(upstream, "init", "-b", "main")
+        _git(upstream, "config", "user.email", "u@u.com")
+        _git(upstream, "config", "user.name", "U")
+        _commit(upstream, "initial", "base.txt")
+
+        fork = tmp_path / "fork"
+        subprocess.run(
+            ["git", "clone", str(upstream), str(fork)],
+            check=True,
+            capture_output=True,
+        )
+        _git(fork, "config", "user.email", "me@me.com")
+        _git(fork, "config", "user.name", "Me")
+        _git(fork, "remote", "rename", "origin", "upstream")
+
+        origin = tmp_path / "origin.git"
+        origin.mkdir()
+        _git(origin, "init", "--bare", "-b", "main")
+        _git(fork, "remote", "add", "origin", str(origin))
+
+        _git(fork, "checkout", "-b", "feature/solo")
+        _commit(fork, "solo work", "solo.txt")
+        _git(fork, "checkout", "main")
+
+        _commit(upstream, "upstream advance", "up.txt")
+
+        config_toml = """\
+[upstream]
+remote = "upstream"
+branch = "main"
+
+[fork]
+remote = "origin"
+branch = "main"
+
+[knit]
+branch = "johndoe"
+base = "main"
+
+[fork-readme]
+enabled = false
+
+[[branches]]
+name = "feature/solo"
+description = "Solo"
+"""
+        (fork / ".livefork.toml").write_text(config_toml)
+
+        from livefork.git import GitRepo
+        from livefork.knit import KnitBridge
+        from livefork.sync import SyncOptions, SyncOrchestrator
+        from livefork.config import load_config
+
+        cfg = load_config(fork / ".livefork.toml")
+        git = GitRepo(fork)
+        knit = KnitBridge(fork)
+        knit.init_knit("johndoe", "main", ["feature/solo"])
+        orch = SyncOrchestrator(cfg, git, knit, fork)
+        rc = orch.run(SyncOptions(no_readme=True))
+        assert rc == 0
+
+        result = runner.invoke(
+            app,
+            ["status"],
+            catch_exceptions=False,
+            env={"PWD": str(fork)},
+        )
+        assert result.exit_code == 0
+        assert "✗ needs rebase" not in result.output
+        assert "✓ rebased" in result.output
+
+    def test_status_per_branch_after_partial_rebase(self, tmp_path):
+        """When only one branch is rebased via --branch, status correctly shows
+        mixed state: rebased for the synced branch, needs-rebase for the other."""
+        upstream = tmp_path / "upstream"
+        upstream.mkdir()
+        _git(upstream, "init", "-b", "main")
+        _git(upstream, "config", "user.email", "u@u.com")
+        _git(upstream, "config", "user.name", "U")
+        _commit(upstream, "initial", "base.txt")
+
+        fork = tmp_path / "fork"
+        subprocess.run(
+            ["git", "clone", str(upstream), str(fork)],
+            check=True,
+            capture_output=True,
+        )
+        _git(fork, "config", "user.email", "me@me.com")
+        _git(fork, "config", "user.name", "Me")
+        _git(fork, "remote", "rename", "origin", "upstream")
+
+        origin = tmp_path / "origin.git"
+        origin.mkdir()
+        _git(origin, "init", "--bare", "-b", "main")
+        _git(fork, "remote", "add", "origin", str(origin))
+
+        _git(fork, "checkout", "-b", "feature/one")
+        _commit(fork, "one work", "one.txt")
+        _git(fork, "checkout", "main")
+        _git(fork, "checkout", "-b", "feature/two")
+        _commit(fork, "two work", "two.txt")
+        _git(fork, "checkout", "main")
+
+        _commit(upstream, "upstream advance", "up.txt")
+
+        config_toml = """\
+[upstream]
+remote = "upstream"
+branch = "main"
+
+[fork]
+remote = "origin"
+branch = "main"
+
+[knit]
+branch = "johndoe"
+base = "main"
+
+[fork-readme]
+enabled = false
+
+[[branches]]
+name = "feature/one"
+description = "One"
+
+[[branches]]
+name = "feature/two"
+description = "Two"
+"""
+        (fork / ".livefork.toml").write_text(config_toml)
+
+        from livefork.git import GitRepo
+        from livefork.knit import KnitBridge
+        from livefork.sync import SyncOptions, SyncOrchestrator
+        from livefork.config import load_config
+
+        cfg = load_config(fork / ".livefork.toml")
+        git = GitRepo(fork)
+        knit = KnitBridge(fork)
+        knit.init_knit("johndoe", "main", ["feature/one", "feature/two"])
+        orch = SyncOrchestrator(cfg, git, knit, fork)
+        # Only rebase feature/one
+        rc = orch.run(SyncOptions(no_readme=True, branch="feature/one"))
+        assert rc == 0
+
+        result = runner.invoke(
+            app,
+            ["status"],
+            catch_exceptions=False,
+            env={"PWD": str(fork)},
+        )
+        assert result.exit_code == 0
+        # feature/one should be rebased, feature/two should need rebase
+        for line in result.output.splitlines():
+            if "feature/one" in line:
+                assert "✓ rebased" in line
+            if "feature/two" in line:
+                assert "✗ needs rebase" in line
+
+
 def test_add_branch(fork_with_config):
     """livefork add creates a new feature branch entry in config."""
     repo = fork_with_config
