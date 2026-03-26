@@ -16,6 +16,11 @@ dependencies = [
 [project.scripts]
 livefork = "livefork.cli:app"
 
+[project.optional-dependencies]
+anthropic = ["llm", "llm-anthropic"]
+gemini = ["llm", "llm-gemini"]
+openai = ["llm"]
+
 [build-system]
 requires = ["uv_build"]
 build-backend = "uv_build"

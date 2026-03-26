@@ -122,6 +122,18 @@ class GitRepo:
         """Return diff of commits between base and tip."""
         return self.run(["log", "-p", f"{base}..{tip}"]).stdout
 
+    def get_merge_base(self, ref1: str, ref2: str) -> str:
+        """Return the merge-base SHA between two refs."""
+        return self.run(["merge-base", ref1, ref2]).stdout.strip()
+
+    def get_log_messages(self, range_spec: str) -> str:
+        """Return ``git log`` with full commit messages for *range_spec*."""
+        return self.run(["log", "--format=medium", range_spec]).stdout
+
+    def get_diff_range(self, base: str, tip: str) -> str:
+        """Return the combined diff between *base* and *tip*."""
+        return self.run(["diff", base, tip]).stdout
+
     # ------------------------------------------------------------------ mutations
 
     def checkout(self, branch: str) -> None:
