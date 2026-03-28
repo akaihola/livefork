@@ -87,6 +87,62 @@ def test_readme_draft_branch():
         draft_branches={"feature/bar"},
     )
     assert "draft" in readme.lower()
+    # Description should link to PULL-REQUEST-DRAFT.md
+    assert "[Add bar][b1-draft]" in readme
+    assert (
+        "[b1-draft]: https://github.com/me/proj/blob/feature/bar/PULL-REQUEST-DRAFT.md"
+        in readme
+    )
+    # Status column should say "draft PR" (plain text, not a link)
+    assert "draft PR" in readme
+
+
+def test_readme_branch_with_pr_and_draft():
+    """Branch with a PR and a draft still links description to PULL-REQUEST-DRAFT.md."""
+    cfg = _make_config(
+        [
+            BranchConfig(
+                name="feature/baz",
+                description="Fix baz",
+                pr="https://github.com/org/proj/pull/42",
+            ),
+        ]
+    )
+    readme = generate_readme(
+        cfg,
+        upstream_sha="abc",
+        upstream_url="https://github.com/org/proj",
+        fork_url="https://github.com/me/proj",
+        synced_at=datetime.date(2026, 1, 1),
+        draft_branches={"feature/baz"},
+    )
+    # Description links to PULL-REQUEST-DRAFT.md
+    assert "[Fix baz][b1-draft]" in readme
+    assert (
+        "[b1-draft]: https://github.com/me/proj/blob/feature/baz/PULL-REQUEST-DRAFT.md"
+        in readme
+    )
+    # Status column still shows the PR link
+    assert "PR #42" in readme
+
+
+def test_readme_non_draft_description_is_plain_text():
+    """Branch without draft has plain-text description (no link)."""
+    cfg = _make_config(
+        [
+            BranchConfig(name="feature/plain", description="Plain desc"),
+        ]
+    )
+    readme = generate_readme(
+        cfg,
+        upstream_sha="abc",
+        upstream_url="https://github.com/org/proj",
+        fork_url="https://github.com/me/proj",
+        synced_at=datetime.date(2026, 1, 1),
+    )
+    # Description should be plain text, not a link
+    assert "| Plain desc |" in readme
+    assert "PULL-REQUEST-DRAFT" not in readme
 
 
 def test_readme_local_only_branch():

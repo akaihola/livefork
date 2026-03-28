@@ -100,16 +100,22 @@ def build_context(
             branch_link = b.name
             ref_lines = []
 
+        # Description: link to PULL-REQUEST-DRAFT.md when available
+        if b.name in draft_branches and has_remote:
+            draft_url = f"{fork_url}/blob/{b.name}/PULL-REQUEST-DRAFT.md"
+            draft_slug = f"{slug}-draft"
+            description = f"[{b.description}][{draft_slug}]"
+            ref_lines.append(f"[{draft_slug}]: {draft_url}")
+        else:
+            description = b.description
+
         if b.pr:
             pr_num = _pr_number(b.pr)
             pr_slug = f"pr{pr_num}"
             status_text = f"[PR #{pr_num}][{pr_slug}]"
             ref_lines.append(f"[{pr_slug}]: {b.pr}")
         elif b.name in draft_branches and has_remote:
-            draft_url = f"{fork_url}/blob/{b.name}/PULL-REQUEST-DRAFT.md"
-            draft_slug = f"{slug}-draft"
-            status_text = f"[draft PR][{draft_slug}]"
-            ref_lines.append(f"[{draft_slug}]: {draft_url}")
+            status_text = "draft PR"
         elif not has_remote:
             status_text = "local only"
         else:
@@ -118,7 +124,7 @@ def build_context(
         branch_infos.append(
             BranchReadmeInfo(
                 name=b.name,
-                description=b.description,
+                description=description,
                 branch_link=branch_link,
                 status_text=status_text,
                 ref_lines=ref_lines,
