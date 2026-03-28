@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from livefork.git import GitRepo, GitError, BranchInfo, RebaseResult
+from livefork.git import GitRepo, GitError, BranchInfo, RebaseResult, normalize_github_url
 
 
 # conftest git_repo fixture creates: tmp_path/repo on branch 'main' with 1 commit
@@ -117,3 +117,29 @@ def test_is_in_rebase_false(git_repo):
 def test_get_conflicting_files_empty(git_repo):
     g = GitRepo(git_repo)
     assert g.get_conflicting_files() == []
+
+
+class TestNormalizeGithubUrl:
+    def test_ssh_url(self):
+        assert (
+            normalize_github_url("git@github.com:akaihola/dotfiles")
+            == "https://github.com/akaihola/dotfiles"
+        )
+
+    def test_ssh_url_with_git_suffix(self):
+        assert (
+            normalize_github_url("git@github.com:akaihola/dotfiles.git")
+            == "https://github.com/akaihola/dotfiles"
+        )
+
+    def test_https_url_unchanged(self):
+        assert (
+            normalize_github_url("https://github.com/akaihola/dotfiles")
+            == "https://github.com/akaihola/dotfiles"
+        )
+
+    def test_https_url_strips_git_suffix(self):
+        assert (
+            normalize_github_url("https://github.com/akaihola/dotfiles.git")
+            == "https://github.com/akaihola/dotfiles"
+        )

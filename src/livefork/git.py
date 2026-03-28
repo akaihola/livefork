@@ -2,9 +2,24 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+
+
+def normalize_github_url(url: str) -> str:
+    """Convert a GitHub remote URL to its HTTPS browseable form.
+
+    Handles SSH (``git@github.com:owner/repo``) and HTTPS variants,
+    stripping any ``.git`` suffix.
+    """
+    # SSH: git@github.com:owner/repo or git@github.com:owner/repo.git
+    m = re.match(r"git@github\.com:(.+?)(?:\.git)?$", url)
+    if m:
+        return f"https://github.com/{m.group(1)}"
+    # Already HTTPS – just strip .git suffix
+    return url.removesuffix(".git")
 
 
 class GitError(Exception):

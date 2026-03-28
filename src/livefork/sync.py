@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from livefork.config import LiveforkConfig
-from livefork.git import GitError, GitRepo, RebaseResult
+from livefork.git import GitError, GitRepo, RebaseResult, normalize_github_url
 from livefork.knit import KnitBridge
 from livefork.state import SyncState, delete_state, load_state, save_state
 
@@ -205,9 +205,8 @@ class SyncOrchestrator:
             upstream_sha = "unknown"
         upstream_url = self.git.get_remote_url(self.config.upstream.remote) or ""
         fork_url = self.git.get_remote_url(self.config.fork.remote) or ""
-        # strip .git suffix
-        upstream_url = upstream_url.removesuffix(".git")
-        fork_url = fork_url.removesuffix(".git")
+        upstream_url = normalize_github_url(upstream_url) if upstream_url else ""
+        fork_url = normalize_github_url(fork_url) if fork_url else ""
 
         errors = []
         if not upstream_url:
