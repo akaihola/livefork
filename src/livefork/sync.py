@@ -231,14 +231,28 @@ class SyncOrchestrator:
             raise SystemExit(1)
 
         # detect draft branches (have PULL-REQUEST-DRAFT.md on their tip)
-        draft_branches: set[str] = set()
+        # maps branch name → title from the draft file
+        draft_branches: dict[str, str] = {}
         for b in self.config.branches:
             result = self.git.run(
                 ["cat-file", "-e", f"{b.name}:PULL-REQUEST-DRAFT.md"],
                 check=False,
             )
             if result.returncode == 0:
-                draft_branches.add(b.name)
+                title = ""
+                cat_result = self.git.run(
+                    ["cat-file", "-p", f"{b.name}:PULL-REQUEST-DRAFT.md"],
+                    check=False,
+                )
+                if cat_result.returncode == 0:
+                    for line in cat_result.stdout.splitlines():
+                        stripped = line.strip()
+                        if not stripped:
+                            break
+                        if stripped.lower().startswith("title:"):
+                            title = stripped.partition(":")[2].strip()
+                            break
+                draft_branches[b.name] = title
 
         content = generate_readme(
             self.config,

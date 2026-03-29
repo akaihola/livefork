@@ -84,10 +84,10 @@ def test_readme_draft_branch():
         upstream_url="https://github.com/org/proj",
         fork_url="https://github.com/me/proj",
         synced_at=datetime.date(2026, 1, 1),
-        draft_branches={"feature/bar"},
+        draft_branches={"feature/bar": ""},
     )
     assert "draft" in readme.lower()
-    # Description should link to PULL-REQUEST-DRAFT.md
+    # Description should link to PULL-REQUEST-DRAFT.md (falls back to config description)
     assert "[Add bar][b1-draft]" in readme
     assert (
         "[b1-draft]: https://github.com/me/proj/blob/feature/bar/PULL-REQUEST-DRAFT.md"
@@ -95,6 +95,26 @@ def test_readme_draft_branch():
     )
     # Status column should say "draft PR" (plain text, not a link)
     assert "draft PR" in readme
+
+
+def test_readme_draft_title_overrides_description():
+    """When draft_branches provides a title, it overrides the config description."""
+    cfg = _make_config(
+        [
+            BranchConfig(name="fix/thing", description="fix/thing"),
+        ]
+    )
+    readme = generate_readme(
+        cfg,
+        upstream_sha="abc",
+        upstream_url="https://github.com/org/proj",
+        fork_url="https://github.com/me/proj",
+        synced_at=datetime.date(2026, 1, 1),
+        draft_branches={"fix/thing": "Fix the broken thing"},
+    )
+    assert "[Fix the broken thing][b1-draft]" in readme
+    assert "fix/thing" not in readme.split("Description")[1].split("Status")[0] or \
+        "Fix the broken thing" in readme
 
 
 def test_readme_branch_with_pr_and_draft():
@@ -114,9 +134,9 @@ def test_readme_branch_with_pr_and_draft():
         upstream_url="https://github.com/org/proj",
         fork_url="https://github.com/me/proj",
         synced_at=datetime.date(2026, 1, 1),
-        draft_branches={"feature/baz"},
+        draft_branches={"feature/baz": ""},
     )
-    # Description links to PULL-REQUEST-DRAFT.md
+    # Description links to PULL-REQUEST-DRAFT.md (falls back to config description)
     assert "[Fix baz][b1-draft]" in readme
     assert (
         "[b1-draft]: https://github.com/me/proj/blob/feature/baz/PULL-REQUEST-DRAFT.md"

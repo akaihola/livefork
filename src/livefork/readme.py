@@ -69,7 +69,7 @@ def build_context(
     upstream_url: str,
     fork_url: str,
     synced_at: datetime.date,
-    draft_branches: set[str] | None = None,
+    draft_branches: dict[str, str] | None = None,
 ) -> ReadmeContext:
     if not upstream_url:
         raise ValueError(
@@ -81,7 +81,7 @@ def build_context(
             "fork_url is empty – cannot generate README without a valid"
             " fork remote URL"
         )
-    draft_branches = draft_branches or set()
+    draft_branches = draft_branches or {}
     project_name = _parse_github_repo(upstream_url)
     upstream_owner = _parse_github_owner(upstream_url)
     fork_owner = _parse_github_owner(fork_url)
@@ -104,7 +104,8 @@ def build_context(
         if b.name in draft_branches and has_remote:
             draft_url = f"{fork_url}/blob/{b.name}/PULL-REQUEST-DRAFT.md"
             draft_slug = f"{slug}-draft"
-            description = f"[{b.description}][{draft_slug}]"
+            draft_title = draft_branches[b.name] or b.description
+            description = f"[{draft_title}][{draft_slug}]"
             ref_lines.append(f"[{draft_slug}]: {draft_url}")
         else:
             description = b.description
@@ -167,7 +168,7 @@ def generate_readme(
     upstream_url: str,
     fork_url: str,
     synced_at: datetime.date,
-    draft_branches: set[str] | None = None,
+    draft_branches: dict[str, str] | None = None,
 ) -> str:
     """Render the fork README Markdown string."""
     ctx = build_context(
