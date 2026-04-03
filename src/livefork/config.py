@@ -143,13 +143,48 @@ def save_config(config: LiveforkConfig, path: Path) -> None:
         tomli_w.dump(data, f)
 
 
+def resolve_config_path(repo_root: Path) -> Path:
+    """Return the config file path to use for *repo_root*.
+
+    Resolution order (first match wins):
+
+    1. ``.git/livefork.toml`` – preferred; lives inside the git directory so it
+       is completely unaffected by branch switches and will never be stashed.
+    2. ``.livefork.toml`` – legacy working-tree location.
+
+    When neither file exists yet (initial ``livefork init``):
+
+    * Defaults to ``.git/livefork.toml`` when a ``.git`` *directory* exists.
+    * Falls back to ``.livefork.toml`` otherwise (bare / non-git directories).
+    """
+    git_dir_config = repo_root / ".git" / "livefork.toml"
+    workdir_config = repo_root / ".livefork.toml"
+    if git_dir_config.exists():
+        return git_dir_config
+    if workdir_config.exists():
+        return workdir_config
+    # Neither exists – choose preferred location for a new config
+    if (repo_root / ".git").is_dir():
+        return git_dir_config
+    return workdir_config
+
+
 def find_config(start: Path) -> Path:
-    """Walk up directory tree from *start* looking for .livefork.toml."""
+    """Walk up directory tree from *start* looking for a livefork config.
+
+    At each directory level, ``.git/livefork.toml`` is checked before
+    ``.livefork.toml`` so that the git-directory location is always preferred.
+    """
     for parent in [start, *start.parents]:
+        git_dir = parent / ".git"
+        if git_dir.is_dir():
+            git_config = git_dir / "livefork.toml"
+            if git_config.exists():
+                return git_config
         candidate = parent / ".livefork.toml"
         if candidate.exists():
             return candidate
-    raise FileNotFoundError(f"No .livefork.toml found searching up from {start}")
+    raise FileNotFoundError(f"No livefork config found searching up from {start}")
 
 
 def auto_detect_branches(git_repo_path: Path) -> list[BranchConfig]:

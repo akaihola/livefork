@@ -26,20 +26,57 @@ def _repo_root() -> Path:
 
 
 def _config_path(root: Path) -> Path:
-    return root / ".livefork.toml"
+    """Return the config file path for *root*, honouring the preference order.
+
+    Delegates to :func:`livefork.config.resolve_config_path` so that
+    ``.git/livefork.toml`` is used when it already exists (or when setting up
+    a new config in a git repo), falling back to ``.livefork.toml``.
+    """
+    from livefork.config import resolve_config_path
+
+    return resolve_config_path(root)
 
 
 def _require_config(root: Path):
-    from livefork.config import load_config
+    from livefork.config import find_config, load_config
 
-    p = _config_path(root)
-    if not p.exists():
+    try:
+        p = find_config(root)
+    except FileNotFoundError:
         typer.echo(
-            f"Error: no .livefork.toml found in {root}. Run 'livefork init' first.",
+            f"Error: no livefork config found in {root}. Run 'livefork init' first.",
             err=True,
         )
         raise typer.Exit(1)
     return load_config(p)
+
+
+def _ensure_gitignore_entry(repo_root: Path, config_path: Path) -> None:
+    """Add *config_path* to ``.gitignore`` when it lives in the working tree.
+
+    If *config_path* is inside the ``.git/`` directory no action is taken –
+    the file is already invisible to git and needs no ignore rule.
+    """
+    # Inside .git/ → nothing to do
+    try:
+        config_path.relative_to(repo_root / ".git")
+        return
+    except ValueError:
+        pass
+
+    entry = config_path.relative_to(repo_root).as_posix()  # e.g. ".livefork.toml"
+    gitignore = repo_root / ".gitignore"
+
+    if gitignore.exists():
+        content = gitignore.read_text()
+        if entry in content.splitlines():
+            return  # already present
+        suffix = "" if content.endswith("\n") else "\n"
+        gitignore.write_text(content + suffix + entry + "\n")
+        typer.echo(f"Added '{entry}' to .gitignore")
+    else:
+        gitignore.write_text(f"{entry}\n")
+        typer.echo(f"Created .gitignore with '{entry}'")
 
 
 def _make_git(root: Path):
@@ -107,7 +144,6 @@ def init(
     """Configure an existing fork clone and initialise the merge branch."""
     from livefork.config import (
         auto_detect_branches,
-        find_config,
         load_config,
         save_config,
         LiveforkConfig,
@@ -127,7 +163,7 @@ def init(
     # If config exists, load it; otherwise build defaults
     if config_file.exists():
         cfg = load_config(config_file)
-        typer.echo("Found existing .livefork.toml – updating.")
+        typer.echo(f"Found existing config at {config_file} – updating.")
     else:
         knit_branch = merge_branch or getpass.getuser()
         cfg = LiveforkConfig(
@@ -136,7 +172,7 @@ def init(
             knit=KnitSectionConfig(branch=knit_branch),
             fork_readme=ForkReadmeConfig(),
         )
-        typer.echo("Creating .livefork.toml.")
+        typer.echo(f"Creating config at {config_file}.")
 
     # Auto-detect branches if none configured
     if not cfg.branches:
@@ -146,6 +182,9 @@ def init(
 
     save_config(cfg, config_file)
     typer.echo(f"Wrote {config_file}")
+
+    # When config is in the working tree, ensure it is git-ignored
+    _ensure_gitignore_entry(root, config_file)
 
     # Initialise git-knit if not already done
     branch_names = [b.name for b in cfg.branches]
@@ -454,7 +493,9 @@ def draft(
     ] = None,
     model: Annotated[
         Optional[str],
-        typer.Option("--model", help="LLM model to use (e.g. claude-sonnet-4-20250514)."),
+        typer.Option(
+            "--model", help="LLM model to use (e.g. claude-sonnet-4-20250514)."
+        ),
     ] = None,
     no_edit: Annotated[
         bool, typer.Option("--no-edit", help="Skip opening the editor.")
@@ -494,7 +535,10 @@ def draft(
 
                 typer.echo("Generating draft with LLM…")
                 draft_content = generate_draft(
-                    log, diff, branch=branch, model_id=model,
+                    log,
+                    diff,
+                    branch=branch,
+                    model_id=model,
                 )
                 draft_file.write_text(format_draft(draft_content))
                 generated = True

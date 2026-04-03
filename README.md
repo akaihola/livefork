@@ -71,7 +71,7 @@ livefork init
 livefork sync
 ```
 
-All three paths detect your local branches automatically, write `.livefork.toml`, initialise the merge branch (named after your username by default), and generate an initial fork README on the `main` branch.
+All three paths detect your local branches automatically, write the livefork config (to `.git/livefork.toml` by default, so branch switches never affect it), initialise the merge branch (named after your username by default), and generate an initial fork README on the `main` branch.
 
 ---
 
