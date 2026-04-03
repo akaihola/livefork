@@ -9,6 +9,7 @@ from livefork.config import (
     UpstreamConfig,
     find_config,
     load_config,
+    resolve_config_path,
     save_config,
 )
 
@@ -111,3 +112,66 @@ def test_find_config_walks_up(tmp_path):
 def test_find_config_missing(tmp_path):
     with pytest.raises(FileNotFoundError):
         find_config(tmp_path / "nowhere")
+
+
+# ------------------------------------------------------------------ resolve_config_path
+
+
+def test_resolve_config_path_git_dir_config_exists(tmp_path):
+    """.git/livefork.toml is returned when it already exists."""
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    git_config = git_dir / "livefork.toml"
+    git_config.write_text(MINIMAL_TOML)
+    assert resolve_config_path(tmp_path) == git_config
+
+
+def test_resolve_config_path_prefers_git_dir_over_workdir(tmp_path):
+    """When both locations exist, .git/livefork.toml wins."""
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "livefork.toml").write_text(MINIMAL_TOML)
+    (tmp_path / ".livefork.toml").write_text(MINIMAL_TOML)
+    assert resolve_config_path(tmp_path) == git_dir / "livefork.toml"
+
+
+def test_resolve_config_path_falls_back_to_workdir(tmp_path):
+    """When only .livefork.toml exists it is returned (legacy repos)."""
+    workdir_config = tmp_path / ".livefork.toml"
+    workdir_config.write_text(MINIMAL_TOML)
+    assert resolve_config_path(tmp_path) == workdir_config
+
+
+def test_resolve_config_path_new_git_repo_defaults_to_git_dir(tmp_path):
+    """New config in a git repo defaults to .git/livefork.toml."""
+    (tmp_path / ".git").mkdir()
+    assert resolve_config_path(tmp_path) == tmp_path / ".git" / "livefork.toml"
+
+
+def test_resolve_config_path_non_git_dir_defaults_to_workdir(tmp_path):
+    """When there is no .git directory, .livefork.toml is the default."""
+    assert resolve_config_path(tmp_path) == tmp_path / ".livefork.toml"
+
+
+# ------------------------------------------------------------------ find_config (git-dir preference)
+
+
+def test_find_config_prefers_git_dir_over_workdir(tmp_path):
+    """find_config picks .git/livefork.toml before .livefork.toml at same level."""
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    git_config = git_dir / "livefork.toml"
+    git_config.write_text(MINIMAL_TOML)
+    (tmp_path / ".livefork.toml").write_text(MINIMAL_TOML)
+    assert find_config(tmp_path) == git_config
+
+
+def test_find_config_git_dir_found_when_walking_up(tmp_path):
+    """.git/livefork.toml in a parent is found when searching from a nested dir."""
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    git_config = git_dir / "livefork.toml"
+    git_config.write_text(MINIMAL_TOML)
+    nested = tmp_path / "src" / "sub"
+    nested.mkdir(parents=True)
+    assert find_config(nested) == git_config

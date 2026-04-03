@@ -71,11 +71,17 @@ def test_version():
 
 
 def test_status_no_config(tmp_path):
+    # Set PWD so _repo_root() returns tmp_path (which has no config), not the
+    # project directory.  HOME is also overridden to prevent accidental look-ups
+    # in the real home directory.
     result = runner.invoke(
-        app, ["status"], catch_exceptions=False, env={"HOME": str(tmp_path)}
+        app,
+        ["status"],
+        catch_exceptions=False,
+        env={"HOME": str(tmp_path), "PWD": str(tmp_path)},
     )
     # Should fail gracefully when no config
-    assert result.exit_code != 0 or "no .livefork.toml" in result.output.lower()
+    assert result.exit_code != 0 or "no livefork config" in result.output.lower()
 
 
 class TestStatusAfterSync:
@@ -424,7 +430,9 @@ class TestGhOwnerType:
     """Unit tests for the ``_gh_owner_type`` helper."""
 
     def test_returns_organization(self):
-        with patch("subprocess.run", return_value=_make_sp_result(stdout="Organization\n")):
+        with patch(
+            "subprocess.run", return_value=_make_sp_result(stdout="Organization\n")
+        ):
             assert _gh_owner_type("my-org") == "Organization"
 
     def test_returns_user(self):
@@ -436,7 +444,9 @@ class TestGhOwnerType:
             assert _gh_owner_type("nonexistent") == "unknown"
 
     def test_calls_gh_api_with_correct_args(self):
-        with patch("subprocess.run", return_value=_make_sp_result(stdout="User\n")) as mock_run:
+        with patch(
+            "subprocess.run", return_value=_make_sp_result(stdout="User\n")
+        ) as mock_run:
             _gh_owner_type("testuser")
             mock_run.assert_called_once_with(
                 ["gh", "api", "users/testuser", "--jq", ".type"],
@@ -558,9 +568,7 @@ class TestCreate:
             )
         assert result.exit_code == 0
         # Find the gh repo fork call among all subprocess.run calls
-        gh_calls = [
-            c for c in mock_run.call_args_list if c[0][0][0] == "gh"
-        ]
+        gh_calls = [c for c in mock_run.call_args_list if c[0][0][0] == "gh"]
         assert len(gh_calls) == 1
         gh_args = gh_calls[0][0][0]
         assert "--org" in gh_args
@@ -591,9 +599,7 @@ class TestCreate:
                 catch_exceptions=False,
             )
         assert result.exit_code == 0
-        gh_calls = [
-            c for c in mock_run.call_args_list if c[0][0][0] == "gh"
-        ]
+        gh_calls = [c for c in mock_run.call_args_list if c[0][0][0] == "gh"]
         assert len(gh_calls) == 1
         gh_args = gh_calls[0][0][0]
         assert "--org" not in gh_args
@@ -667,9 +673,7 @@ class TestCreate:
                 catch_exceptions=False,
             )
         assert result.exit_code == 0
-        gh_calls = [
-            c for c in mock_run.call_args_list if c[0][0][0] == "gh"
-        ]
+        gh_calls = [c for c in mock_run.call_args_list if c[0][0][0] == "gh"]
         gh_args = gh_calls[0][0][0]
         assert "--org" in gh_args
         assert "mystery" in gh_args
@@ -696,9 +700,7 @@ class TestCreate:
                 catch_exceptions=False,
             )
         assert result.exit_code == 0
-        gh_calls = [
-            c for c in mock_run.call_args_list if c[0][0][0] == "gh"
-        ]
+        gh_calls = [c for c in mock_run.call_args_list if c[0][0][0] == "gh"]
         gh_args = gh_calls[0][0][0]
         assert "--org" not in gh_args
 
@@ -726,9 +728,7 @@ class TestCreate:
                 catch_exceptions=False,
             )
         assert result.exit_code == 0
-        gh_calls = [
-            c for c in mock_run.call_args_list if c[0][0][0] == "gh"
-        ]
+        gh_calls = [c for c in mock_run.call_args_list if c[0][0][0] == "gh"]
         gh_args = gh_calls[0][0][0]
         assert "--fork-name" in gh_args
         assert "my-fork" in gh_args
@@ -757,12 +757,12 @@ class TestCreate:
             )
         assert result.exit_code == 0
         mock_init.assert_called_once_with(merge_branch=None)
-        gh_calls = [
-            c for c in mock_run.call_args_list if c[0][0][0] == "gh"
-        ]
+        gh_calls = [c for c in mock_run.call_args_list if c[0][0][0] == "gh"]
         gh_args = gh_calls[0][0][0]
         assert "--clone" not in gh_args
-        assert result.output.splitlines()[1] == f"Using existing clone at {clone_target}"
+        assert (
+            result.output.splitlines()[1] == f"Using existing clone at {clone_target}"
+        )
         git_result = subprocess.run(
             ["git", "remote", "get-url", "origin"],
             cwd=clone_target,
@@ -791,12 +791,12 @@ class TestCreate:
             )
         assert result.exit_code == 0
         mock_init.assert_called_once_with(merge_branch=None)
-        gh_calls = [
-            c for c in mock_run.call_args_list if c[0][0][0] == "gh"
-        ]
+        gh_calls = [c for c in mock_run.call_args_list if c[0][0][0] == "gh"]
         gh_args = gh_calls[0][0][0]
         assert "--clone" not in gh_args
-        assert result.output.splitlines()[1] == f"Using existing clone at {clone_target}"
+        assert (
+            result.output.splitlines()[1] == f"Using existing clone at {clone_target}"
+        )
 
     def test_gh_fork_failure_reports_error(self):
         """When gh repo fork fails, stderr is reported."""
@@ -850,3 +850,89 @@ class TestCreate:
             text=True,
         )
         assert "ghuser" in git_result.stdout
+
+
+# ------------------------------------------------------------------ _ensure_gitignore_entry / init
+
+
+class TestEnsureGitignoreEntry:
+    """_ensure_gitignore_entry adds .livefork.toml to .gitignore when in working tree."""
+
+    def _make_git_repo(self, tmp_path: Path) -> Path:
+        _git(tmp_path, "init", "-b", "main")
+        _git(tmp_path, "config", "user.email", "t@t.com")
+        _git(tmp_path, "config", "user.name", "T")
+        _commit(tmp_path, "init", "base.txt")
+        return tmp_path
+
+    def test_adds_entry_to_existing_gitignore(self, tmp_path):
+        from livefork.cli import _ensure_gitignore_entry
+
+        gitignore = tmp_path / ".gitignore"
+        gitignore.write_text("*.log\n")
+        config = tmp_path / ".livefork.toml"
+        _ensure_gitignore_entry(tmp_path, config)
+        assert ".livefork.toml" in gitignore.read_text().splitlines()
+
+    def test_creates_gitignore_when_absent(self, tmp_path):
+        from livefork.cli import _ensure_gitignore_entry
+
+        config = tmp_path / ".livefork.toml"
+        _ensure_gitignore_entry(tmp_path, config)
+        assert (tmp_path / ".gitignore").read_text().strip() == ".livefork.toml"
+
+    def test_does_not_duplicate_existing_entry(self, tmp_path):
+        from livefork.cli import _ensure_gitignore_entry
+
+        gitignore = tmp_path / ".gitignore"
+        gitignore.write_text(".livefork.toml\n")
+        config = tmp_path / ".livefork.toml"
+        _ensure_gitignore_entry(tmp_path, config)
+        lines = gitignore.read_text().splitlines()
+        assert lines.count(".livefork.toml") == 1
+
+    def test_no_gitignore_entry_for_git_dir_config(self, tmp_path):
+        from livefork.cli import _ensure_gitignore_entry
+
+        (tmp_path / ".git").mkdir()
+        config = tmp_path / ".git" / "livefork.toml"
+        _ensure_gitignore_entry(tmp_path, config)
+        assert not (tmp_path / ".gitignore").exists()
+
+    def test_init_writes_to_git_dir_for_new_repo(self, tmp_path):
+        """livefork init defaults to .git/livefork.toml in a fresh git repo."""
+        repo = self._make_git_repo(tmp_path)
+        _git(repo, "remote", "add", "upstream", "https://github.com/up/stream.git")
+        _git(repo, "remote", "add", "origin", "https://github.com/me/stream.git")
+
+        result = runner.invoke(
+            app, ["init"], env={"PWD": str(repo)}, catch_exceptions=False
+        )
+        assert result.exit_code == 0
+        assert (repo / ".git" / "livefork.toml").exists()
+        # .gitignore should NOT be created / modified
+        assert (
+            not (repo / ".gitignore").exists()
+            or ".livefork.toml" not in (repo / ".gitignore").read_text()
+        )
+
+    def test_init_workdir_config_added_to_gitignore(self, tmp_path):
+        """When an existing .livefork.toml is in the working tree, init adds it to .gitignore."""
+        repo = self._make_git_repo(tmp_path)
+        # Pre-place config in working tree (legacy location)
+        (repo / ".livefork.toml").write_text(
+            '[upstream]\nremote = "upstream"\nbranch = "main"\n'
+            '[fork]\nremote = "origin"\nbranch = "main"\n'
+            '[knit]\nbranch = "me"\nbase = "main"\n'
+            "[fork-readme]\nenabled = false\n"
+        )
+        _git(repo, "remote", "add", "upstream", "https://github.com/up/stream.git")
+        _git(repo, "remote", "add", "origin", "https://github.com/me/stream.git")
+
+        result = runner.invoke(
+            app, ["init"], env={"PWD": str(repo)}, catch_exceptions=False
+        )
+        assert result.exit_code == 0
+        gitignore = repo / ".gitignore"
+        assert gitignore.exists()
+        assert ".livefork.toml" in gitignore.read_text().splitlines()
