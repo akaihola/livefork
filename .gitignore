@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+
+# Test & coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Linter caches
+.ruff_cache/
+
+# Build / packaging
+dist/
+*.egg-info/
+
+# Per-user livefork config (machine-specific fork/remote settings)
+.livefork.toml
