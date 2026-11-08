@@ -1,5 +1,7 @@
 # livefork
 
+> This is a prototype developed using AI coding agents and not intended for production use.
+
 > Keep your personal fork alive – one command to sync upstream, rebase your branches, and rebuild the merge stack.
 
 `livefork` is a Python CLI tool for maintaining a long-lived personal fork of an upstream project. You keep additions and modifications in focused topic branches and a [`git-knit`][git-knit] merge branch that combines them all for daily use. `livefork sync` pulls upstream changes, rebases every topic branch, and rebuilds the merge branch in one shot – pausing with clear instructions whenever a conflict needs attention.
